@@ -1,0 +1,18 @@
+# Render Blueprint — free-tier web service.
+# Set PSEUDOGRAM_API_KEY in the dashboard (Environment tab), or it will be read
+# from here. Keep the DB on a persistent disk so queued DMs survive restarts.
+services:
+  - type: web
+    name: linkplease
+    runtime: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT --workers 1
+    envVars:
+      - key: PSEUDOGRAM_API_KEY
+        sync: false
+      - key: DATABASE_PATH
+        value: /var/data/linkplease.db
+    disk:
+      name: linkplease-data
+      mountPath: /var/data
+      sizeGB: 1

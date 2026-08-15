@@ -1,0 +1,18 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# SQLite database (runtime state; do not commit)
+*.db
+*.db-wal
+*.db-shm
+
+# Environment / secrets
+.env
+
+# Editor / OS
+.DS_Store
+.idea/
+.vscode/
