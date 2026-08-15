@@ -160,9 +160,4 @@ All via environment variables (see `.env.example`):
 | `DISPATCH_INTERVAL` | `0.1` | Dispatcher poll interval |
 | `HTTP_TIMEOUT` | `15.0` | Outbound HTTP timeout |
 
-## Before you submit
 
-1. `FAILURES.md` — read it; it's the part graders actually read.
-2. Record the Loom (outline in `LOOM_OUTLINE.md`).
-3. `POST /v1/submit` with your **real** email, a public repo, a URL that stays
-   live 7 days, and your honest `start_date`.
