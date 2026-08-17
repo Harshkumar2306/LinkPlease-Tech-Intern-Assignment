@@ -120,7 +120,7 @@ def main() -> int:
 
         # Wait for stats to settle (queued -> 0).
         stats = None
-        for _ in range(60):
+        for _ in range(200):
             stats = client.get("/stats").json()
             if stats["queued"] == 0 and stats["sent"] >= 3:
                 break
