@@ -1,5 +1,14 @@
 # LinkPlease — Tech Intern Assignment
 
+## Submission Details
+- **Name:** Harsh Kumar
+- **Email:** harsh_kumar@srmap.edu.in
+- **Deployed API:** [https://linkplease-harsh.onrender.com](https://linkplease-harsh.onrender.com)
+- **Demo Video:** [Google Drive Link](https://drive.google.com/file/d/1Y_dAVjxp8iNauc3aMzO3IFHMwR38ZRCm/view?usp=sharing)
+- **Parts Completed:** A, B, and C
+
+---
+
 A small, production-minded version of LinkPlease's core loop: someone comments a
 keyword on a post, and we DM them the price list. Built on top of the
 [Pseudogram mock API](https://pseudogram-api.onrender.com).
