@@ -29,20 +29,52 @@
 
 ## 🏗️ Architecture & Design
 
-```
-                     POST /webhook
-   (Verify HMAC-SHA256 signature, persist raw event, return 200 in <1ms)
-                           │
-                           ▼
-                  ┌─────────────────┐
-                  │  SQLite Engine  │  Single Source of Truth
-                  │  events / rules │  (Zero in-memory state;
-                  │  dms / dedup    │   survives process crashes)
-                  │  counters / log │
-                  └─────────────────┘
-                  ▲        ▲        ▲
-                  │        │        │
-            dispatcher   sender   reconciler
+```mermaid
+graph TB
+    subgraph Client["📱 External Platform & Clients"]
+        IG["👤 Instagram Commenter"]
+        CREATOR["🎨 Creator Post"]
+        PSEUDO["⚡ Pseudogram Hostile Mock API"]
+        IG -->|"1. Comments 'PRICE'"| CREATOR
+        CREATOR -->|"2. Platform Event"| PSEUDO
+        PSEUDO -->|"3. POST /webhook (HMAC-SHA256)"| WH
+        SND -->|"6. POST /v1/dm/send (9 req/min)"| PSEUDO
+        REC -->|"7. GET /v1/dm/{id} (Poll Status)"| PSEUDO
+        PSEUDO -->|"8. Direct Message Delivered"| IG
+    end
+
+    subgraph Backend["⚙️ LinkPlease Engine (Render - Docker)"]
+        WH["📥 FastAPI Webhook Handler<br/><code>POST /webhook</code>"]
+        RULES["📋 Rule Management<br/><code>POST /rules</code>"]
+        STATS["📊 Real-Time Metrics<br/><code>GET /stats</code>"]
+
+        subgraph Workers["🔄 Async Background Worker Loops"]
+            DISP["🔍 Dispatcher Engine<br/><code>Regex & Keyword Matching</code>"]
+            DEDUP{"Atomic Dedup Check<br/><code>INSERT OR IGNORE</code>"}
+            RL["⏱️ Sliding-Window Limiter<br/><code>Max 9 Sends / rolling 60s</code>"]
+            SND["📤 Sender Worker<br/><code>Idempotency-Key & Backoff</code>"]
+            REC["🩺 Reconciler Loop<br/><code>Status Sync & Retry</code>"]
+
+            DISP --> DEDUP
+            DEDUP -->|"Unique (rule_id, user_id)"| RL
+            DEDUP -->|"Duplicate Event"| BLK["🚫 Block & Count (+1)"]
+            RL --> SND
+        end
+
+        DB[("🗄️ SQLite Engine (Single Source of Truth)<br/><code>events • rules • dms • dedup</code>")]
+
+        WH -->|"Raw Event Buffer (<1ms)"| DB
+        RULES -->|"Store Rule"| DB
+        DB -->|"Fetch Unprocessed Events"| DISP
+        SND -->|"Update State (pending→sending→accepted)"| DB
+        REC -->|"Update State (delivered/failed)"| DB
+        DB -->|"Atomic Aggregation Query"| STATS
+    end
+
+    style Client fill:#fef3c7,stroke:#f59e0b,color:#78350f
+    style Backend fill:#d1fae5,stroke:#10b981,color:#064e3b
+    style Workers fill:#ede9fe,stroke:#8b5cf6,color:#4c1d95
+    style DB fill:#dbeafe,stroke:#3b82f6,color:#1e3a5f
 ```
 
 ### 1. Fast, Non-Blocking Ingestion (`app/main.py`)
