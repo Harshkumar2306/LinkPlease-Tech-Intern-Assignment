@@ -31,10 +31,10 @@
 
 ```mermaid
 graph TB
-    subgraph Client["📱 External Platform & Clients"]
-        IG["👤 Instagram Commenter"]
-        CREATOR["🎨 Creator Post"]
-        PSEUDO["⚡ Pseudogram Hostile Mock API"]
+    subgraph Client["🌐 External Platform & Users"]
+        IG["👤 Instagram Commenter"]:::extNode
+        CREATOR["🎨 Creator Post"]:::extNode
+        PSEUDO["⚡ Pseudogram Hostile Mock API"]:::extApiNode
         IG -->|"1. Comments 'PRICE'"| CREATOR
         CREATOR -->|"2. Platform Event"| PSEUDO
         PSEUDO -->|"3. POST /webhook (HMAC-SHA256)"| WH
@@ -44,24 +44,25 @@ graph TB
     end
 
     subgraph Backend["⚙️ LinkPlease Engine (Render - Docker)"]
-        WH["📥 FastAPI Webhook Handler<br/><code>POST /webhook</code>"]
-        RULES["📋 Rule Management<br/><code>POST /rules</code>"]
-        STATS["📊 Real-Time Metrics<br/><code>GET /stats</code>"]
+        WH["📥 FastAPI Webhook Handler<br/><code>POST /webhook</code>"]:::apiNode
+        RULES["📋 Rule Management<br/><code>POST /rules</code>"]:::apiNode
+        STATS["📊 Real-Time Metrics<br/><code>GET /stats</code>"]:::apiNode
 
         subgraph Workers["🔄 Async Background Worker Loops"]
-            DISP["🔍 Dispatcher Engine<br/><code>Regex & Keyword Matching</code>"]
-            DEDUP{"Atomic Dedup Check<br/><code>INSERT OR IGNORE</code>"}
-            RL["⏱️ Sliding-Window Limiter<br/><code>Max 9 Sends / rolling 60s</code>"]
-            SND["📤 Sender Worker<br/><code>Idempotency-Key & Backoff</code>"]
-            REC["🩺 Reconciler Loop<br/><code>Status Sync & Retry</code>"]
+            DISP["🔍 Dispatcher Engine<br/><code>Regex & Keyword Matching</code>"]:::workerNode
+            DEDUP{"Atomic Dedup Check<br/><code>INSERT OR IGNORE</code>"}:::decisionNode
+            RL["⏱️ Sliding-Window Limiter<br/><code>Max 9 Sends / rolling 60s</code>"]:::limiterNode
+            SND["📤 Sender Worker<br/><code>Idempotency-Key & Backoff</code>"]:::workerNode
+            REC["🩺 Reconciler Loop<br/><code>Status Sync & Retry</code>"]:::workerNode
+            BLK["🚫 Block & Count (+1)"]:::blockNode
 
             DISP --> DEDUP
             DEDUP -->|"Unique (rule_id, user_id)"| RL
-            DEDUP -->|"Duplicate Event"| BLK["🚫 Block & Count (+1)"]
+            DEDUP -->|"Duplicate Event"| BLK
             RL --> SND
         end
 
-        DB[("🗄️ SQLite Engine (Single Source of Truth)<br/><code>events • rules • dms • dedup</code>")]
+        DB[("🗄️ SQLite Engine (Single Source of Truth)<br/><code>events • rules • dms • dedup</code>")]:::dbNode
 
         WH -->|"Raw Event Buffer (<1ms)"| DB
         RULES -->|"Store Rule"| DB
@@ -71,10 +72,20 @@ graph TB
         DB -->|"Atomic Aggregation Query"| STATS
     end
 
-    style Client fill:#fef3c7,stroke:#f59e0b,color:#78350f
-    style Backend fill:#d1fae5,stroke:#10b981,color:#064e3b
-    style Workers fill:#ede9fe,stroke:#8b5cf6,color:#4c1d95
-    style DB fill:#dbeafe,stroke:#3b82f6,color:#1e3a5f
+    %% Premium Modern Palette
+    classDef default font-family:system-ui,sans-serif,font-size:13px;
+    classDef extNode fill:#fef2f2,stroke:#f87171,stroke-width:2px,color:#991b1b;
+    classDef extApiNode fill:#fff1f2,stroke:#e11d48,stroke-width:2px,color:#881337;
+    classDef apiNode fill:#e0e7ff,stroke:#6366f1,stroke-width:2px,color:#1e1b4b;
+    classDef workerNode fill:#f3e8ff,stroke:#a855f7,stroke-width:2px,color:#581c87;
+    classDef decisionNode fill:#fef3c7,stroke:#f59e0b,stroke-width:2px,color:#78350f;
+    classDef limiterNode fill:#ecfdf5,stroke:#10b981,stroke-width:2px,color:#064e3b;
+    classDef blockNode fill:#fee2e2,stroke:#ef4444,stroke-width:2px,color:#7f1d1d;
+    classDef dbNode fill:#e0f2fe,stroke:#0284c7,stroke-width:2.5px,color:#0c4a6e;
+
+    style Client fill:#fffbeb,stroke:#fcd34d,stroke-width:2px,color:#92400e
+    style Backend fill:#f8fafc,stroke:#64748b,stroke-width:2px,color:#0f172a
+    style Workers fill:#f5f3ff,stroke:#c4b5fd,stroke-width:2px,color:#4c1d95
 ```
 
 ### 1. Fast, Non-Blocking Ingestion (`app/main.py`)
